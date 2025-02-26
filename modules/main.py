@@ -27,7 +27,7 @@ async def rwa_command(client, message: Message):
 
 from pyrogram import Client, filters
 
-@app.on_message(filters.text & ~filters.command())  # ✅ Correct Syntax
+@app.on_message(filters.text & ~filters.command(["start", "rwa"]))  # ✅ Correct syntax
 async def login(client, message: Message):
     """Handles login with ID & Password OR Token"""
     chat_id = message.chat.id
