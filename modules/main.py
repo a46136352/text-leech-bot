@@ -1,3 +1,4 @@
+import os
 import requests
 import json
 import logging
@@ -7,7 +8,6 @@ from pyromod import listen
 from base64 import b64decode
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
-import os
 
 logging.basicConfig(level=logging.INFO)
 
@@ -106,7 +106,11 @@ async def account_login(bot: Client, m: Message):
         await m.reply_text("Error fetching subjects.")
         return
 
-    await m.reply_text(str(subjects))
+    subject_list = "**Available Subjects:**\n\n"
+    for subject in subjects:
+        subject_list += f"📖 `{subject['subjectid']}` - **{subject['subject_name']}**\n"
+
+    await m.reply_text(subject_list)
 
     await m.reply_text("Enter the **Subject ID** from the above response:")
     input3: Message = await bot.listen(m.chat.id)
@@ -131,9 +135,7 @@ async def account_login(bot: Client, m: Message):
     await m.reply_text(topic_list)
 
     # Get topic IDs from user
-    await m.reply_text(
-        "Send the **Topic IDs** separated by `&` to download (e.g., `1&2&3`):"
-    )
+    await m.reply_text("Send the **Topic IDs** separated by `&` to download (e.g., `1&2&3`):")
     input4: Message = await bot.listen(m.chat.id)
     selected_topics = input4.text.strip().split("&")
 
@@ -148,42 +150,52 @@ async def account_login(bot: Client, m: Message):
         topic_url = f"https://{institute}/get/livecourseclassbycoursesubtopconceptapiv3?topicid={topic_id}&start=-1&courseid={batch_id}&subjectid={subject_id}"
         res4 = requests.get(topic_url, headers=api_headers)
 
+        # Check if the request was successful
+        if res4.status_code != 200:
+            await m.reply_text(f"Error fetching data for Topic ID {topic_id}. HTTP Status: {res4.status_code}")
+            continue
+
         try:
             topic_data = res4.json()["data"]
         except (KeyError, json.JSONDecodeError):
-            await m.reply_text(f"Error fetching data for Topic ID {topic_id}.")
+            await m.reply_text(f"Error processing response for Topic ID {topic_id}.")
             continue
 
         for data in topic_data:
             title = data["Title"].replace(" : ", " ").strip()
             encrypted_url = data.get("download_link") or data.get("pdf_link")
 
+            # If there's no URL available, skip this entry
             if not encrypted_url:
-                await m.reply_text(f"No download link found for Topic ID {topic_id}.")
+                await m.reply_text(f"No download link found for {title}.")
                 continue
 
-            # Log the encrypted URL
-            logging.info(f"Encrypted URL for Topic ID {topic_id}: {encrypted_url}")
-
+            # Decrypt URL
             try:
-                # Decrypt URL
                 key = "638udh3829162018".encode("utf8")
                 iv = "fedcba9876543210".encode("utf8")
                 ciphertext = bytearray.fromhex(b64decode(encrypted_url.encode()).hex())
                 cipher = AES.new(key, AES.MODE_CBC, iv)
                 decrypted_url = unpad(cipher.decrypt(ciphertext), AES.block_size).decode("utf-8")
+
+                # Add to final data
+                final_data.append(f"{title}: {decrypted_url}")
             except Exception as e:
-                await m.reply_text(f"Error decrypting URL for Topic ID {topic_id}: {str(e)}")
-                continue
+                await m.reply_text(f"Error decrypting URL for {title}: {e}")
 
-            final_data.append(f"{title}: {decrypted_url}")
+    # Check if we have any valid data to write to file
+    if final_data:
+        file_name = f"DownloadLinks_{batch_id}.txt"
+        with open(file_name, "w") as f:
+            f.write("\n".join(final_data))
 
-    # Save and send file
-    file_name = f"DownloadLinks_{batch_id}.txt"
-    with open(file_name, "w") as f:
-        f.write("\n".join(final_data))
-
-    await m.reply_document(file_name)
-    await m.reply_text("✅ **Download Links Generated Successfully!**")
+        # Check if the file was created and has content
+        if os.path.exists(file_name) and os.path.getsize(file_name) > 0:
+            await m.reply_document(file_name)
+            await m.reply_text("✅ **Download Links Generated Successfully!**")
+        else:
+            await m.reply_text("Error: The file was created but is empty.")
+    else:
+        await m.reply_text("No download links were generated.")
 
 bot.run()
