@@ -2,11 +2,11 @@ import os
 import requests
 from pyrogram import Client, filters
 from pyrogram.types import Message
+import os
 
-# API Credentials
-API_ID = int(os.getenv("28328736"))
-API_HASH = os.getenv("802254a44896baa87f3083b7af36b2e5")
-BOT_TOKEN = os.getenv("6755775439:AAGkahjp3xK71u-jG6V0uQUR-xJgqLPt9yw")
+os.environ["API_ID"] = "28328736"  # Apni API ID daal
+os.environ["API_HASH"] = "802254a44896baa87f3083b7af36b2e5"
+os.environ["BOT_TOKEN"] = "6755775439:AAGkahjp3xK71u-jG6V0uQUR-xJgqLPt9yw"
 
 API_URL = "http://rozgarapinew.teachx.in/api"
 
