@@ -182,6 +182,39 @@ async def account_login(bot: Client, m: Message):
             V = links[i][1].replace("file/d/","uc?export=download&id=").replace("www.youtube-nocookie.com/embed", "youtu.be").replace("?modestbranding=1", "").replace("/view?usp=sharing","") # .replace("mpd","m3u8")
             url = "https://" + V
 
+            if ".pdf" in url:
+            await editable.edit("🔑 Send PDF password (or 'no' if not required).")
+            input_key: Message = await bot.listen(editable.chat.id)
+            pdf_key = input_key.text.strip()
+            await input_key.delete()
+
+            pdf_api_url = f"https://dragoapi.vercel.app/pdf/{url}*{pdf_key}" if pdf_key.lower() != "no" else f"https://dragoapi.vercel.app/pdf/{url}"
+            os.system(f'curl -o "{count}.pdf" "{pdf_api_url}"')
+            await bot.send_document(m.chat.id, f"{count}.pdf", caption=f"📄 PDF {count}")
+            os.remove(f"{count}.pdf")
+
+        elif "m3u8" in url or "cpvod" in url or "classplusapp" in url:
+            video_api_url = f"https://dragoapi.vercel.app/video/{url}"
+            os.system(f'yt-dlp -o "{count}.mp4" "{video_api_url}"')
+            await bot.send_video(m.chat.id, f"{count}.mp4", caption=f"🎥 Video {count}")
+            os.remove(f"{count}.mp4")
+
+        elif "classplusapp" in url:
+            key_api_url = f"https://dragoapi.vercel.app/classplus?link={url}"
+            response = requests.get(key_api_url).json()
+            drm_key = response.get("key", "🔑 Key Not Found")
+            await m.reply_text(f"🔑 **Extracted DRM Key:** `{drm_key}`\n🔗 **Video Link:** `{url}`")
+
+        else:
+            # Handle normal downloads (existing functionality)
+            name = f"{count}) {url.split('/')[-1][:30]}"
+            cmd = f'yt-dlp -o "{name}.mp4" "{url}"'
+            os.system(cmd)
+
+            await bot.send_video(m.chat.id, f"{name}.mp4", caption=f"🎥 Downloaded Video: {name}")
+            os.remove(f"{name}.mp4")
+
+
             if "visionias" in url:
                 async with ClientSession() as session:
                     async with session.get(url, headers={'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9', 'Accept-Language': 'en-US,en;q=0.9', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive', 'Pragma': 'no-cache', 'Referer': 'http://www.visionias.in/', 'Sec-Fetch-Dest': 'iframe', 'Sec-Fetch-Mode': 'navigate', 'Sec-Fetch-Site': 'cross-site', 'Upgrade-Insecure-Requests': '1', 'User-Agent': 'Mozilla/5.0 (Linux; Android 12; RMX2121) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Mobile Safari/537.36', 'sec-ch-ua': '"Chromium";v="107", "Not=A?Brand";v="24"', 'sec-ch-ua-mobile': '?1', 'sec-ch-ua-platform': '"Android"',}) as resp:
