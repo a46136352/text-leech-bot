@@ -25,13 +25,17 @@ async def rwa_command(client, message: Message):
     """Handles /rwa command and asks for ID & Password"""
     await message.reply_text("🔑 Send your ID and password in this manner: id*password OR send your Token:")
 
-from pyrogram import Client, filters
+@app.on_message(filters.text & ~filters.command(["start", "rwa"]))  # ✅ Correct Syntax
+def handle_message(client, message):
+    message.reply_text("✅ Message received!")
 
-@app.on_message(filters.text & ~filters.command(["start", "rwa"]))  # ✅ Correct syntax
+@app.on_message(filters.command("rwa"))  # ✅ Command for Login
 async def login(client, message: Message):
     """Handles login with ID & Password OR Token"""
     chat_id = message.chat.id
     credentials = message.text
+
+    await message.reply_text("Send your ID and password in this format: id*password OR Token")
 
     if "*" in credentials:
         user_id, password = credentials.split("*")
