@@ -4,9 +4,9 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 
 # API Credentials
-API_ID = int(os.getenv("API_ID"))
-API_HASH = os.getenv("API_HASH")
-BOT_TOKEN = os.getenv("BOT_TOKEN")
+API_ID = int(os.getenv("28328736"))
+API_HASH = os.getenv("802254a44896baa87f3083b7af36b2e5")
+BOT_TOKEN = os.getenv("6755775439:AAGkahjp3xK71u-jG6V0uQUR-xJgqLPt9yw")
 
 API_URL = "http://rozgarapinew.teachx.in/api"
 
