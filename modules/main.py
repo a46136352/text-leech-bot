@@ -1,48 +1,50 @@
-import requests
-import json
-import logging
-from pyrogram import Client, filters
-from pyrogram.types import Message
-from pyromod import listen
 import os
+import json
+import requests
+import logging
+import asyncio
 from base64 import b64decode
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
+from pyrogram import Client, filters
+from pyrogram.types import Message
+from pyromod import listen
 
+# Logging Configuration
 logging.basicConfig(level=logging.INFO)
 
 # Set API credentials
-API_ID = int(os.getenv("API_ID", "28328736"))  # Replace with your actual API_ID
-API_HASH = os.getenv("API_HASH", "802254a44896baa87f3083b7af36b2e5")  # Replace with your actual API_HASH
-BOT_TOKEN = os.getenv("BOT_TOKEN", "6755775439:AAGkahjp3xK71u-jG6V0uQUR-xJgqLPt9yw")  # Replace with your bot token
+API_ID = int(os.getenv("API_ID", "28328736"))
+API_HASH = os.getenv("API_HASH", "802254a44896baa87f3083b7af36b2e5")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "6755775439:AAGkahjp3xK71u-jG6V0uQUR-xJgqLPt9yw")
 
 # Initialize Pyrogram Client
 bot = Client("my_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# Bot Setup
+# Bot Command: /txt
 @bot.on_message(filters.command(["txt"]))
 async def account_login(bot: Client, m: Message):
     await m.reply_text(
         "**Choose Your Institute:**\n"
-        "**1. Ankit With Rojgar:** `rozgarapinew.teachx.in`\n"
-        "**2. The Last Exam:** `lastexamapi.teachx.in`\n"
-        "**3. The Mission Institute:** `missionapi.appx.co.in`"
+        "1️⃣ **Ankit With Rojgar:** `rozgarapinew.teachx.in`\n"
+        "2️⃣ **The Last Exam:** `lastexamapi.teachx.in`\n"
+        "3️⃣ **The Mission Institute:** `missionapi.appx.co.in`"
     )
 
     input01: Message = await bot.listen(m.chat.id)
     institute = input01.text.strip()
 
     if institute not in ["rozgarapinew.teachx.in", "lastexamapi.teachx.in", "missionapi.appx.co.in"]:
-        await m.reply_text("Invalid Institute. Please enter a valid one.")
+        await m.reply_text("⚠️ Invalid Institute. Please enter a valid one.")
         return
 
-    await m.reply_text("Send **ID & Password** in this format: `ID*Password`")
+    await m.reply_text("🔑 **Send your ID & Password in this format:** `ID*Password`")
     input1: Message = await bot.listen(m.chat.id)
 
     try:
         user_id, password = input1.text.split("*")
     except ValueError:
-        await m.reply_text("Invalid format! Use `ID*Password`")
+        await m.reply_text("⚠️ Invalid format! Use `ID*Password`")
         return
 
     # Login request
@@ -57,7 +59,7 @@ async def account_login(bot: Client, m: Message):
 
     response = requests.post(login_url, data=credentials, headers=headers)
     if response.status_code != 200:
-        await m.reply_text("Login failed. Check your credentials.")
+        await m.reply_text("❌ **Login failed. Check your credentials.**")
         return
 
     output = response.json()
@@ -66,7 +68,7 @@ async def account_login(bot: Client, m: Message):
 
     await m.reply_text("✅ **Login Successful!**")
 
-    # Headers for subsequent requests
+    # Headers for API requests
     api_headers = {
         "Client-Service": "Appx",
         "Auth-Key": "appxapi",
@@ -78,43 +80,52 @@ async def account_login(bot: Client, m: Message):
     # Fetching user batches
     batch_url = f"https://{institute}/get/mycourse?userid={user_id}"
     res1 = requests.get(batch_url, headers=api_headers)
-    
+
     try:
         batch_data = res1.json()["data"]
     except (KeyError, json.JSONDecodeError):
-        await m.reply_text("Error fetching batches.")
+        await m.reply_text("⚠️ Error fetching batches.")
         return
 
-    batch_list = "**Your Available Batches:**\n\n"
+    batch_list = "**📚 Your Available Batches:**\n\n"
     for batch in batch_data:
-        batch_list += f"📚 `{batch['id']}` - **{batch['course_name']}**\n"
+        batch_list += f"📌 `{batch['id']}` - **{batch['course_name']}**\n"
 
     await m.reply_text(batch_list)
-    
+
     # Get batch ID from user
-    await m.reply_text("Send the **Batch ID** to proceed:")
+    await m.reply_text("🆔 **Send the Batch ID to proceed:**")
     input2: Message = await bot.listen(m.chat.id)
     batch_id = input2.text.strip()
 
     # Fetch Subjects
     subject_url = f"https://{institute}/get/allsubjectfrmlivecourseclass?courseid={batch_id}"
     res2 = requests.get(subject_url, headers=api_headers)
-    
+
     try:
-        subjects = res2.json()["data"]
+        subjects = res2.json()
+        if "data" not in subjects or not isinstance(subjects["data"], list):
+            await m.reply_text("⚠️ Error: Unexpected API response for subjects.")
+            return
+        subjects = subjects["data"]
     except (KeyError, json.JSONDecodeError):
-        await m.reply_text("Error fetching subjects.")
+        await m.reply_text("⚠️ Error fetching subjects.")
         return
 
-    subject_list = "**Available Subjects:**\n\n"
+    subject_list = "**📖 Available Subjects:**\n\n"
     for subject in subjects:
-        subject_logo = subject.get("logo", "No logo available")  # Assuming the logo URL is in the "logo" field
-        subject_list += f"📝 `{subject['id']}` - **{subject['name']}**\n"
-        subject_list += f"![Logo]({subject_logo})\n"  # Include the logo in the response
+        subject_id = subject.get("id", "Unknown ID")
+        subject_name = subject.get("name", "Unknown Name")
+        subject_logo = subject.get("logo", None)
+
+        subject_list += f"📝 `{subject_id}` - **{subject_name}**\n"
+        if subject_logo:
+            subject_list += f"🖼 [Subject Logo]({subject_logo})\n"
 
     await m.reply_text(subject_list)
 
-    await m.reply_text("Enter the **Subject ID** from the above response:")
+    # Get Subject ID
+    await m.reply_text("🆔 **Enter the Subject ID from the above response:**")
     input3: Message = await bot.listen(m.chat.id)
     subject_id = input3.text.strip()
 
@@ -125,26 +136,22 @@ async def account_login(bot: Client, m: Message):
     try:
         topics = res3.json()["data"]
     except (KeyError, json.JSONDecodeError):
-        await m.reply_text("Error fetching topics.")
+        await m.reply_text("⚠️ Error fetching topics.")
         return
 
-    topic_list = "**Available Topics:**\n\n"
-    topic_ids = []
+    topic_list = "**📌 Available Topics:**\n\n"
     for topic in topics:
         topic_list += f"📝 `{topic['topicid']}` - **{topic['topic_name']}**\n"
-        topic_ids.append(topic['topicid'])
 
     await m.reply_text(topic_list)
 
-    # Get topic IDs from user
-    await m.reply_text(
-        "Send the **Topic IDs** separated by `&` to download (e.g., `1&2&3`):"
-    )
+    # Get topic IDs
+    await m.reply_text("📌 **Send the Topic IDs separated by `&` (e.g., `1&2&3`)**")
     input4: Message = await bot.listen(m.chat.id)
     selected_topics = input4.text.strip().split("&")
 
-    # Get Resolution from user
-    await m.reply_text("Now send the **Resolution**:")
+    # Get Resolution
+    await m.reply_text("📌 **Now send the Resolution:**")
     input5: Message = await bot.listen(m.chat.id)
     resolution = input5.text.strip()
 
@@ -157,7 +164,7 @@ async def account_login(bot: Client, m: Message):
         try:
             topic_data = res4.json()["data"]
         except (KeyError, json.JSONDecodeError):
-            await m.reply_text(f"Error fetching data for Topic ID {topic_id}.")
+            await m.reply_text(f"⚠️ Error fetching data for Topic ID {topic_id}.")
             continue
 
         for data in topic_data:
@@ -165,16 +172,16 @@ async def account_login(bot: Client, m: Message):
             encrypted_url = data.get("download_link") or data.get("pdf_link")
 
             # Decrypt URL
-            if encrypted_url:  # Check if encrypted_url is not None or empty
-                key = "638udh3829162018".encode("utf8")
-                iv = "fedcba9876543210".encode("utf8")
+            key = "638udh3829162018".encode("utf8")
+            iv = "fedcba9876543210".encode("utf8")
+            try:
                 ciphertext = bytearray.fromhex(b64decode(encrypted_url.encode()).hex())
                 cipher = AES.new(key, AES.MODE_CBC, iv)
                 decrypted_url = unpad(cipher.decrypt(ciphertext), AES.block_size).decode("utf-8")
-
                 final_data.append(f"{title}: {decrypted_url}")
+            except:
+                continue
 
-    # Save and send file
     file_name = f"DownloadLinks_{batch_id}.txt"
     with open(file_name, "w") as f:
         f.write("\n".join(final_data))
