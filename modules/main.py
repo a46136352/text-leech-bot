@@ -4,12 +4,17 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 import os
 
-os.environ["API_ID"] = "28328736"  # Apni API ID daal
+# Pehle environment variables set kar
+os.environ["API_ID"] = "28328736"
 os.environ["API_HASH"] = "802254a44896baa87f3083b7af36b2e5"
 os.environ["BOT_TOKEN"] = "6755775439:AAGkahjp3xK71u-jG6V0uQUR-xJgqLPt9yw"
 
 API_URL = "http://rozgarapinew.teachx.in/api"
 
+# Ab inhe variables me assign kar
+API_ID = int(os.getenv("API_ID"))  # API_ID ko int me convert karna zaroori hai
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 # Start Pyrogram Client
 app = Client("bot_session", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
