@@ -192,20 +192,20 @@ async def account_login(bot: Client, m: Message):
             os.system(f'curl -o "{count}.pdf" "{pdf_api_url}"')
             await bot.send_document(m.chat.id, f"{count}.pdf", caption=f"📄 PDF {count}")
             os.remove(f"{count}.pdf")
-
-        elif "m3u8" in url or "cpvod" in url or "classplusapp" in url:
+   
+            elif "m3u8" in url or "cpvod" in url or "classplusapp" in url:
             video_api_url = f"https://dragoapi.vercel.app/video/{url}"
             os.system(f'yt-dlp -o "{count}.mp4" "{video_api_url}"')
             await bot.send_video(m.chat.id, f"{count}.mp4", caption=f"🎥 Video {count}")
             os.remove(f"{count}.mp4")
 
-        elif "classplusapp" in url:
+            elif "classplusapp" in url:
             key_api_url = f"https://dragoapi.vercel.app/classplus?link={url}"
             response = requests.get(key_api_url).json()
             drm_key = response.get("key", "🔑 Key Not Found")
             await m.reply_text(f"🔑 **Extracted DRM Key:** `{drm_key}`\n🔗 **Video Link:** `{url}`")
 
-        else:
+            else:
             # Handle normal downloads (existing functionality)
             name = f"{count}) {url.split('/')[-1][:30]}"
             cmd = f'yt-dlp -o "{name}.mp4" "{url}"'
