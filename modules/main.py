@@ -1,6 +1,3 @@
-# Install necessary libraries
-!pip install pyrogram tgcrypto
-
 # Import required modules
 import os
 import requests
@@ -41,7 +38,10 @@ async def careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, n
                     vid_id = str(lesson['id'])
                     lesson_name = lesson['lessonName']
                     lessonExt = lesson['lessonExt']
-                    lessonUrl = requests.get(f"https://elearn.crwilladmin.com/api/v5/class-detail/{vid_id}", headers=headers).json().get('data', {}).get('class_detail', {}).get('lessonUrl', '')
+                    lessonUrl = requests.get(
+                        f"https://elearn.crwilladmin.com/api/v5/class-detail/{vid_id}",
+                        headers=headers
+                    ).json().get('data', {}).get('class_detail', {}).get('lessonUrl', '')
 
                     if lessonExt == 'brightcove':
                         token_url = "https://elearn.crwilladmin.com/api/v5/livestreamToken"
@@ -102,7 +102,13 @@ async def career_will(app, message):
                 "accept-encoding": "gzip",
                 "user-agent": "okhttp/3.9.1"
             }
-            data = {"deviceType": "web", "password": password, "deviceModel": "chrome", "deviceVersion": "Chrome+122", "email": email}
+            data = {
+                "deviceType": "web",
+                "password": password,
+                "deviceModel": "chrome",
+                "deviceVersion": "Chrome+122",
+                "email": email
+            }
             response = requests.post(login_url, headers=headers, json=data)
             token = response.json()["data"]["token"]
             await message.reply_text(f"**Login Successful**\n\n`{token}`")
@@ -142,10 +148,13 @@ async def career_will(app, message):
         prog = await message.reply_text("**Extracting videos links... Please wait**")
 
         # Start download in a separate thread
-        threading.Thread(target=lambda: asyncio.run(careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, name))).start()
+        threading.Thread(target=lambda: asyncio.run(
+            careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, raw_text2)
+        )).start()
 
     except Exception as e:
         await message.reply_text(str(e))
 
 # Start the bot
 app.run()
+
