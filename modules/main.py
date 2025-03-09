@@ -15,7 +15,7 @@ bc_url = f"https://edge.api.brightcove.com/playback/v1/accounts/{ACCOUNT_ID}/vid
 bc_hdr = {"BCOV-POLICY": BCOV_POLICY}
 
 # Initialize Pyrogram client
-app = Client(api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client("my_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
 # Download function
 async def careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, name):
