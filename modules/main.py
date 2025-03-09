@@ -9,9 +9,9 @@ import threading
 from pyrogram import Client, filters
 
 # Configuration (replace with your own values)
-API_ID = "YOUR_API_ID"
-API_HASH = "YOUR_API_HASH"
-BOT_TOKEN = "YOUR_BOT_TOKEN"
+API_ID = "28328736"
+API_HASH = "802254a44896baa87f3083b7af36b2e5"
+BOT_TOKEN = "6755775439:AAGkahjp3xK71u-jG6V0uQUR-xJgqLPt9yw"
 ACCOUNT_ID = "6206459123001"
 BCOV_POLICY = "BCpkADawqM1474MvKwYlMRZNBPoqkJY-UWm7zE1U769d5r5kqTjG0v8L-THXuVZtdIQJpfMPB37L_VJQxTKeNeLO2Eac_yMywEgyV9GjFDQ2LTiT4FEiHhKAUvdbx9ku6fGnQKSMB8J5uIDd"
 bc_url = f"https://edge.api.brightcove.com/playback/v1/accounts/{ACCOUNT_ID}/videos/"
