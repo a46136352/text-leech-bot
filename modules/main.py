@@ -18,11 +18,89 @@ bc_hdr = {"BCOV-POLICY": BCOV_POLICY}
 # Initialize Pyrogram client
 app = Client("my_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
 
-# Download function
+# State tracking dictionary
+USER_STATE = {}
+
+# Start command
+@app.on_message(filters.command("cw") & filters.user(SUDO_USERS))
+async def start(app, message):
+    await message.reply_text("**Send ID & Password in format ID*Password or Send Token:**")
+    USER_STATE[message.chat.id] = "AWAITING_LOGIN"
+
+# Handle user input
+@app.on_message(filters.text & filters.user(SUDO_USERS))
+async def handle_input(app, message):
+    state = USER_STATE.get(message.chat.id)
+
+    if state == "AWAITING_LOGIN":
+        raw_text = message.text
+
+        if "*" in raw_text:
+            email, password = raw_text.split("*")
+            headers = {
+                "Host": "elearn.crwilladmin.com",
+                "Apptype": "web",
+                "accept": "application/json",
+                "content-type": "application/json; charset=utf-8",
+                "accept-encoding": "gzip",
+                "user-agent": "okhttp/3.9.1"
+            }
+            data = {
+                "deviceType": "web",
+                "password": password,
+                "deviceModel": "chrome",
+                "deviceVersion": "Chrome+122",
+                "email": email
+            }
+            response = requests.post("https://elearn.crwilladmin.com/api/v5/login-other", headers=headers, json=data)
+            token = response.json()["data"]["token"]
+            await message.reply_text(f"**Login Successful**\n\n`{token}`")
+        else:
+            token = raw_text
+
+        headers = {
+            "Host": "elearn.crwilladmin.com",
+            "Apptype": "web",
+            "usertype": "2",
+            "token": token,
+            "accept-encoding": "gzip",
+            "user-agent": "okhttp/3.9.1"
+        }
+
+        # Fetch batch details
+        batch_url = "https://elearn.crwilladmin.com/api/v5/my-batch"
+        topicid = requests.get(batch_url, headers=headers).json()["data"]["batchData"]
+
+        FFF = "**BATCH-ID - BATCH NAME**\n\n"
+        for data in topicid:
+            FFF += f"`{data['id']}` - **{data['batchName']}**\n\n"
+
+        await message.reply_text(f"**Here are your batches:**\n\n{FFF}")
+        USER_STATE[message.chat.id] = {"headers": headers}
+
+    elif isinstance(state, dict):
+        headers = state["headers"]
+        raw_text2 = message.text
+
+        # Get class and notes IDs
+        class_url = f"https://elearn.crwilladmin.com/api/v5/batch-topic/{raw_text2}?type=class"
+        class_data = requests.get(class_url, headers=headers).json()['data']['batch_topic']
+        class_id = "&".join([str(data['id']) for data in class_data])
+
+        notes_url = f"https://elearn.crwilladmin.com/api/v5/batch-topic/{raw_text2}?type=notes"
+        notes_data = requests.get(notes_url, headers=headers).json()['data']['batch_topic']
+        notes_id = "&".join([str(data['id']) for data in notes_data])
+
+        prog = await message.reply_text("**Extracting video links... Please wait**")
+
+        threading.Thread(target=lambda: asyncio.run(
+            careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, raw_text2)
+        )).start()
+
+# Function to handle downloading and processing
 async def careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, name):
     name = name.replace("/", "_")
     try:
-        # Split class IDs
         num_id = class_id.split('&')
         output_text = ""
 
@@ -49,7 +127,7 @@ async def careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, n
                         params = {"base": "web", "module": "batch", "type": "brightcove", "vid": vid_id}
                         stoken = requests.get(token_url, headers=headers, params=params).json().get("data", {}).get("token", '')
 
-                        link = f"{bc_url}{lessonUrl}/master.m3u8?bcov_auth={stoken}"
+                        link = f"https://edge.api.brightcove.com/playback/v1/accounts/6206459123001/videos/{lessonUrl}/master.m3u8?bcov_auth={stoken}"
                         output_text += f"{lesson_name}: {link}\n"
                     elif lessonExt == 'youtube':
                         link = f"https://www.youtube.com/embed/{lessonUrl}"
@@ -58,7 +136,6 @@ async def careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, n
                 except Exception as e:
                     print(f"Error processing lesson: {e}")
 
-        # Save to file
         with open(f"{name}.txt", 'a') as f:
             f.write(output_text)
 
@@ -74,10 +151,7 @@ async def careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, n
                 with open(f"{name}.txt", 'a') as f:
                     f.write(f"{title}: {url}\n")
 
-        # Send document
         await app.send_document(message.chat.id, document=f"{name}.txt", caption=f"Batch Name: `{name}`")
-
-        # Clean up
         os.remove(f"{name}.txt")
 
     except Exception as e:
@@ -85,77 +159,5 @@ async def careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, n
     finally:
         await prog.delete()
 
-# Main handler
-@app.on_message(filters.command("cw") & filters.user(SUDO_USERS))
-async def career_will(app, message):
-    try:
-        input1 = await app.ask(message.chat.id, text="**Send ID & Password in format ID*Password or Send Token:**")
-        raw_text = input1.text
-        login_url = "https://elearn.crwilladmin.com/api/v5/login-other"
-
-        if "*" in raw_text:
-            email, password = raw_text.split("*")
-            headers = {
-                "Host": "elearn.crwilladmin.com",
-                "Apptype": "web",
-                "accept": "application/json",
-                "content-type": "application/json; charset=utf-8",
-                "accept-encoding": "gzip",
-                "user-agent": "okhttp/3.9.1"
-            }
-            data = {
-                "deviceType": "web",
-                "password": password,
-                "deviceModel": "chrome",
-                "deviceVersion": "Chrome+122",
-                "email": email
-            }
-            response = requests.post(login_url, headers=headers, json=data)
-            token = response.json()["data"]["token"]
-            await message.reply_text(f"**Login Successful**\n\n`{token}`")
-        else:
-            token = raw_text
-
-        headers = {
-            "Host": "elearn.crwilladmin.com",
-            "Apptype": "web",
-            "usertype": "2",
-            "token": token,
-            "accept-encoding": "gzip",
-            "user-agent": "okhttp/3.9.1"
-        }
-
-        # Get batches
-        batch_url = "https://elearn.crwilladmin.com/api/v5/my-batch"
-        topicid = requests.get(batch_url, headers=headers).json()["data"]["batchData"]
-
-        FFF = "**BATCH-ID - BATCH NAME**\n\n"
-        for data in topicid:
-            FFF += f"`{data['id']}` - **{data['batchName']}**\n\n"
-
-        await message.reply_text(f"**Here are your batches:**\n\n{FFF}")
-        input2 = await app.ask(message.chat.id, text="**Now send the Batch ID to download**")
-        raw_text2 = input2.text
-
-        # Get class IDs and notes
-        class_url = f"https://elearn.crwilladmin.com/api/v5/batch-topic/{raw_text2}?type=class"
-        class_data = requests.get(class_url, headers=headers).json()['data']['batch_topic']
-        class_id = "&".join([str(data['id']) for data in class_data])
-
-        notes_url = f"https://elearn.crwilladmin.com/api/v5/batch-topic/{raw_text2}?type=notes"
-        notes_data = requests.get(notes_url, headers=headers).json()['data']['batch_topic']
-        notes_id = "&".join([str(data['id']) for data in notes_data])
-
-        prog = await message.reply_text("**Extracting videos links... Please wait**")
-
-        # Start download in a separate thread
-        threading.Thread(target=lambda: asyncio.run(
-            careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, raw_text2)
-        )).start()
-
-    except Exception as e:
-        await message.reply_text(str(e))
-
 # Start the bot
 app.run()
-
