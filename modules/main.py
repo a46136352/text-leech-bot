@@ -85,7 +85,7 @@ async def careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, n
         await prog.delete()
 
 # Main handler
-@app.on_message(filters.command("cw") 
+@app.on_message(filters.command("cw"))
 async def career_will(app, message):
     try:
         input1 = await app.ask(message.chat.id, text="**Send ID & Password in format ID*Password or Send Token:**")
