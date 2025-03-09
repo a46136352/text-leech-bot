@@ -9,6 +9,7 @@ from pyrogram import Client, filters
 API_ID = "28328736"
 API_HASH = "802254a44896baa87f3083b7af36b2e5"
 BOT_TOKEN = "6755775439:AAGkahjp3xK71u-jG6V0uQUR-xJgqLPt9yw"
+SUDO_USERS = []  # Replace 12345678 with actual Telegram user IDs
 ACCOUNT_ID = "6206459123001"
 BCOV_POLICY = "BCpkADawqM1474MvKwYlMRZNBPoqkJY-UWm7zE1U769d5r5kqTjG0v8L-THXuVZtdIQJpfMPB37L_VJQxTKeNeLO2Eac_yMywEgyV9GjFDQ2LTiT4FEiHhKAUvdbx9ku6fGnQKSMB8J5uIDd"
 bc_url = f"https://edge.api.brightcove.com/playback/v1/accounts/{ACCOUNT_ID}/videos/"
@@ -85,7 +86,7 @@ async def careerdl(app, message, headers, raw_text2, class_id, notes_id, prog, n
         await prog.delete()
 
 # Main handler
-@app.on_message(filters.command("cw"))
+@app.on_message(filters.command("cw") & filters.user(SUDO_USERS))
 async def career_will(app, message):
     try:
         input1 = await app.ask(message.chat.id, text="**Send ID & Password in format ID*Password or Send Token:**")
